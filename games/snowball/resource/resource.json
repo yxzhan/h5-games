@@ -1,0 +1,34 @@
+{
+	"groups":[
+	{
+		"keys":"over_number_png,over_number_fnt,texture_json,animate_png,animate_json",
+		"name":"preload"
+	}],
+	"resources":[
+	{
+		"name":"over_number_png",
+		"type":"image",
+		"url":"assets/over_number.png"
+	},
+	{
+		"name":"over_number_fnt",
+		"type":"font",
+		"url":"assets/over_number.fnt"
+	},
+	{
+		"name":"texture_json",
+		"subkeys":"game-overmovie,game-righteye,game-spriteball,start-button,over-bg,game-hole,over-replay-press,game-tree,over-more-press,game-lefteye,game-movetrees,over-win,over-more,game-intro,game-energycube,over-replay,over-share-press,over-lose,over-light,game-bg,over-shareHint,over-karas,over-next-press,start-title,over-share,over-next",
+		"type":"sheet",
+		"url":"assets/texture.json"
+	},
+	{
+		"name":"animate_png",
+		"type":"image",
+		"url":"assets/animate.png"
+	},
+	{
+		"name":"animate_json",
+		"type":"json",
+		"url":"assets/animate.json"
+	}]
+}

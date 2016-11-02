@@ -1,0 +1,30 @@
+﻿{
+"mc": {
+	"haibaoqiu": {
+		"frameRate":6,
+		"labels": [
+		],
+		"frames": [
+			{"res":"haibaoqiu0000","x":-53.5,"y":-41.5},
+			{"res":"haibaoqiu0001","x":-53.5,"y":-41.5},
+			{"res":"haibaoqiu0002","x":-53.5,"y":-41.5}
+		]
+	},
+	"miaomiaoguai": {
+		"frameRate":2,
+		"labels": [
+		],
+		"frames": [
+			{"res":"miaomiaoguai0000","x":-32,"y":-37.5},
+			{"res":"miaomiaoguai0001","x":-32,"y":-37.5}
+		]
+	}
+},
+"res": {
+	"haibaoqiu0000":{"x":0,"y":0,"w":108,"h":84},
+	"haibaoqiu0001":{"x":108,"y":0,"w":108,"h":84},
+	"haibaoqiu0002":{"x":0,"y":84,"w":108,"h":84},
+	"miaomiaoguai0000":{"x":108,"y":84,"w":64,"h":76},
+	"miaomiaoguai0001":{"x":172,"y":84,"w":64,"h":76}
+}
+}

@@ -1,0 +1,24 @@
+{
+	"groups":[
+	{
+		"keys":"animate_png,animate_json,texture_json",
+		"name":"preload"
+	}],
+	"resources":[
+	{
+		"name":"animate_png",
+		"type":"image",
+		"url":"assets/animate.png"
+	},
+	{
+		"name":"animate_json",
+		"type":"json",
+		"url":"assets/animate.json"
+	},
+	{
+		"name":"texture_json",
+		"subkeys":"bar,bar_dynamic,bg_blue,gallery_bg,gallery_dabao,gallery_daniu,gallery_left,gallery_name_dabao,gallery_name_daniu,gallery_name_xiaobao,gallery_right,gallery_select,gallery_xiaobao,intro,more_button,over_bg,over_green,over_lila,over_pink,pause_background,pause_button,pause_home,pause_play,pause_replay,restart_button,score_best,score_this,shareHint,share_button,start_button,tadpole_galery,title,touch",
+		"type":"sheet",
+		"url":"assets/texture.json"
+	}]
+}

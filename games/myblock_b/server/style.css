@@ -1,0 +1,57 @@
+
+#inputDialog{
+    font-size: 20px;
+    padding: 8% 5%;
+    background-color: #285171;
+    position: fixed;
+    width: 50%;
+    left: 20%;
+    top: 20%;
+    border-radius: 30px;
+    color: whitesmoke;
+    box-shadow: 0px 0px 0px 10px #A9A9A9;
+
+}
+input{
+    margin-top: 5%;
+    font-family: 微乳雅黑;
+    font-size: 1em;
+    text-align: center;
+    color: rgb(50, 61, 102);
+    width: 80%;
+    margin-bottom: 5%;
+    border-radius: 22px;
+}
+.dialogBtn{
+    padding: 4% 11%;
+    margin: 2%;
+    /* border-radius: 16px; */
+    /*background: none;*/
+    background-color: #00bb9c;
+    color: white;
+    font-family: 微软雅黑;
+    box-shadow: 0px 5px 0 0px #063D34;
+    border: 0;
+}
+.dialogBtn:active{
+    background-color: #005748;
+    box-shadow: 0 0 0 0 #063D34;
+}
+.glassBg{
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    background-color: black;
+    opacity: 0.6;
+}
+.loading{
+    top: 30%;
+    position: relative;
+}
+output{
+    color:lightgreen;
+}
+hr{
+    color:black;
+}

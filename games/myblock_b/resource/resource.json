@@ -1,0 +1,24 @@
+{
+	"groups":[
+	{
+		"keys":"texture_json,over_number_fnt,levels",
+		"name":"preload"
+	}],
+	"resources":[
+	{
+		"name":"texture_json",
+		"subkeys":"level-home,level-refer,badge-text,bg,next-press,workshop-add-press,level-current,game-replay,light,share,map-corner,game-level-button,map-eraser,share-press,level-home-press,start-button,map-button-finish-press,shareHint,game-next-press,game-level-button-press,level-passed,start-title,over-star,map-button-finish,game-block-mag,game-previous-press,win,game-block-face,start-bg,next,game-replay-press,start-mapeditor-press,map-white,start-mapeditor,map-mag,replay,map-face,replay-press,start-button-press,game-block-white,map-big,game-previous,workshop-add-big,game-step,workshop-add,game-next",
+		"type":"sheet",
+		"url":"assets/texture.json"
+	},
+	{
+		"name":"over_number_fnt",
+		"type":"font",
+		"url":"data/over_number.fnt"
+	},
+	{
+		"name":"levels",
+		"type":"json",
+		"url":"data/levels.json"
+	}]
+}

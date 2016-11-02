@@ -1,0 +1,14 @@
+{
+	"groups":[
+	{
+		"keys":"texture_json",
+		"name":"preload"
+	}],
+	"resources":[
+	{
+		"name":"texture_json",
+		"subkeys":"black,blue,class1,class2,class3,class4,class5,class6,end,introduction,more_game,replay,share,shareHint,startBG1,startBG2,startBtn,title1,title2,title3,title4,title5,title6,white",
+		"type":"sheet",
+		"url":"assets/texture.json"
+	}]
+}

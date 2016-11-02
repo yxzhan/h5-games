@@ -1,0 +1,19 @@
+{
+	"groups":[
+	{
+		"keys":"texture_json,levels",
+		"name":"preload"
+	}],
+	"resources":[
+	{
+		"name":"texture_json",
+		"subkeys":"replay,start-bg,bg,workshop-add,game-level-button-press,level-passed,workshop-add-big,level-dialog,level-home-press,light,game-previous-press,game-replay,level-home,map-corner,map-eraser,next-press,game-previous,game-next-press,map-button-finish-press,over-star,badge-text,game-replay-press,game-next,share-press,level-current,map-button-finish,start-mapeditor,shareHint,win,map-big,start-mapeditor-press,workshop-add-press,next,map-face,game-block-white,game-step,share,level-refer,game-block-mag,start-button-press,start-title,start-button,replay-press,game-level-button,map-mag,map-white,game-block-face",
+		"type":"sheet",
+		"url":"assets/texture.json"
+	},
+	{
+		"name":"levels",
+		"type":"json",
+		"url":"data/levels.json"
+	}]
+}

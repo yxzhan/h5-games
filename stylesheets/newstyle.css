@@ -1,0 +1,57 @@
+﻿body, html{
+	font-size: 12px;
+	font-family: Helvetica Neue,Helvetica,Nimbus Sans L,Arial,Liberation Sans,PingFang SC,Hiragino Sans GB,Source Han Sans CN,Source Han Sans SC,Microsoft YaHei,Wenquanyi Micro Hei,WenQuanYi Zen Hei,ST Heiti,SimHei,WenQuanYi Zen Hei Sharp,sans-serif;
+}
+
+embed{
+	/*padding: 50px;*/
+	margin: 66px 0;	
+}
+#fake_iphone{
+	/*margin:auto;*/
+	width: 261px;
+	text-align: center;
+	background-image:url("../images/iphonebg.png"); 
+	background-size:100%;
+	background-repeat:no-repeat;
+	/*position: absolute;*/
+}
+
+#game_list{
+	padding: 10px;
+	border: 1px;
+	/*position: absolute;*/
+	/*display: inline;*/
+}
+#game_list > p{
+	font-size: 2em;
+}
+#main_content{
+	text-align: center;
+	/*display: inline;*/
+}
+.game_button{
+	border-radius: 5px;
+	background-color: #e44c25;
+	opacity: 1;
+	color: #EEEEEE; 
+	width: 120px;
+	height: 60px;
+	font-size: 1.3em;
+	margin: 10px 10px;
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+}
+.game_button:hover{
+	background-color: #f33a0b;
+}
+
+#qrcode{
+	width: 230px;
+  	position: absolute;
+  	top: 180px;  
+  	left: 350px;
+}
+
+
