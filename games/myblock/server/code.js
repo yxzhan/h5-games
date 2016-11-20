@@ -98,7 +98,7 @@ function postLevel(ln,st){
             afterInsert(nameInput.value, stepInput.value);
         }
         else{
-            console.log("Status:"+xmlhttp.status);
+//             console.log("Status:"+xmlhttp.status);
             loading.style.visibility = "visible";
         }
     };
