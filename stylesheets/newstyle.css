@@ -38,10 +38,11 @@ embed{
 	width: 120px;
 	height: 60px;
 	font-size: 1.3em;
+  box-sizing: content-box;
 	margin: 10px 10px;
-    cursor: pointer;
-    border: none;
-    font-weight: bold;
+  cursor: pointer;
+  border: none;
+  font-weight: bold;
 }
 .game_button:hover{
 	background-color: #f33a0b;
@@ -49,9 +50,10 @@ embed{
 
 #qrcode{
 	width: 230px;
-  	position: absolute;
-  	top: 180px;  
-  	left: 350px;
+  position: absolute;
+  top: 180px;  
+  left: 350px;
 }
-
-
+#qrcode img{
+  max-width: 150px;
+}

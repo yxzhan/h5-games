@@ -1,4 +1,4 @@
-window.remoteUrl = 'http://45.32.18.25'
+window.remoteUrl = 'https://yxzhan.github.io/h5-games/games/myblock/resource/data/'
 var _typeArr="",
     map="",
 //文字标签
