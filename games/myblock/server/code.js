@@ -87,23 +87,26 @@ function showDialog(typeArr,map) {
 }
 //POST数据到后台
 function postLevel(ln,st){
-    var postUrl = remoteUrl + '/s/json?func=postLevel'
+    // var postUrl = remoteUrl + '/s/json?func=postLevel'
     var data="typeArr="+_typeArr+"&map="+_map+"&name="+ln+"&step="+st;
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange=function(){
-        if (xmlhttp.readyState==4 && xmlhttp.status==200)
-        {
-            glassBg.style.visibility="hidden";
-            loading.style.visibility="hidden";
-            afterInsert(nameInput.value, stepInput.value);
-        }
-        else{
-//             console.log("Status:"+xmlhttp.status);
-            loading.style.visibility = "visible";
-        }
-    };
-    xmlhttp.open("POST",postUrl,true);
-    xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-    xmlhttp.send(data);
+    // var xmlhttp = new XMLHttpRequest();
+//     xmlhttp.onreadystatechange=function(){
+//         if (xmlhttp.readyState==4 && xmlhttp.status==200)
+//         {
+//             glassBg.style.visibility="hidden";
+//             loading.style.visibility="hidden";
+//             afterInsert(nameInput.value, stepInput.value);
+//         }
+//         else{
+// //             console.log("Status:"+xmlhttp.status);
+//             loading.style.visibility = "visible";
+//         }
+//     };
+    glassBg.style.visibility="hidden";
+    loading.style.visibility="hidden";
+    afterInsert(nameInput.value, stepInput.value);
+    // xmlhttp.open("POST",postUrl,true);
+    // xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+    // xmlhttp.send(data);
 }
  

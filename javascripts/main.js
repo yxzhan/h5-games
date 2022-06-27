@@ -14,8 +14,6 @@ $(document).ready(function(){
 		$("#fake_iphone").html(str);
 		$("#qrcode > img").attr("src",qrcodeAddress+gameName+".png");
 	});
-
-
 });
 
 
