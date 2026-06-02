@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sandbox Battle Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+  
+  body {
+    background: #0a0a0f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'VT323', monospace;
+    color: #e8e8e8;
+  }
+  
+  /* 9:16 responsive frame */
+  .phone {
+    --accent: #6a4ac0;  /* current accent color, default purple */
+    width: min(100vw, calc(100vh * 9 / 16));
+    height: min(100vh, calc(100vw * 16 / 9));
+    background: #000;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(80, 80, 120, 0.2);
+  }
+  
+  /* ===== Top control bar ===== */
+  .top-bar {
+    height: 40px;
+    background: linear-gradient(180deg, #15151f 0%, #0a0a14 100%);
+    border-bottom: 2px solid #2a2a3a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  .ctrl-btn {
+    background: #1f1f2e;
+    border: 1px solid #3a3a4a;
+    color: #e8e8e8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 1.7vmin, 11px);
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .ctrl-btn:hover { border-color: #8a8aff; }
+  .ctrl-btn:active { transform: translateY(1px); }
+  
+  .timer {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(10px, 2.2vmin, 14px);
+    color: #ffd866;
+    letter-spacing: 1px;
+  }
+  
+  .speed-control {
+    display: flex;
+    gap: 2px;
+    background: #15151f;
+    border: 1px solid #3a3a4a;
+    border-radius: 3px;
+    padding: 2px;
+  }
+  
+  .speed-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 1.7vmin, 11px);
+    padding: 4px 7px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .speed-btn.active { background: #6a4ac0; color: #fff; }
+  
+  /* ===== Middle canvas area ===== */
+  .game-canvas-wrap {
+    flex: 1;
+    background: #1a1a22;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  
+  /* ===== Bottom: Faction tabs + gift panel (connected design) ===== */
+  .tab-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    padding: 12px 6px 0;  /* 12px top space to accommodate the upscaled selected tab */
+    background: linear-gradient(180deg, #0a0a14 0%, #15151f 100%);
+    flex-shrink: 0;
+    align-items: end;
+  }
+  
+  .faction-tab {
+    background: #0f0f1a;
+    border: 2px solid;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    padding: 5px 3px 6px;
+    cursor: pointer;
+    /* Only transition non-layout props to avoid triggering ResizeObserver */
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s, background-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-family: 'Press Start 2P', monospace;
+    position: relative;
+    min-width: 0;
+    opacity: 0.75;
+    transform-origin: bottom center;
+  }
+  
+  .faction-tab:hover:not(.dead):not(.selected) {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  
+  /* Selected state: pure transform scale (no padding/font-size change, avoids reflow) */
+  .faction-tab.selected {
+    opacity: 1;
+    background: currentColor;
+    box-shadow: 0 -4px 14px rgba(0,0,0,0.5), 0 0 12px currentColor;
+    transform: scale(1.18) translateY(-2px);
+    z-index: 2;
+  }
+  
+  /* All text in selected tab becomes white */
+  .faction-tab.selected .tab-name,
+  .faction-tab.selected .tab-gold {
+    color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  
+  /* Selected tab HP bar uses white border */
+  .faction-tab.selected .tab-hp {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(0,0,0,0.4);
+  }
+  
+  .faction-tab.dead {
+    opacity: 0.2;
+    pointer-events: none;
+    filter: grayscale(1);
+  }
+  
+  .faction-tab .tab-name {
+    font-size: clamp(7px, 1.5vmin, 10px);
+    letter-spacing: 0.5px;
+    /* Transition color only, not font-size */
+    transition: color 0.2s;
+  }
+  
+  .faction-tab .tab-hp {
+    width: 100%;
+    height: 4px;
+    background: #000;
+    border: 1px solid #2a2a3a;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .faction-tab .tab-hp-fill {
+    height: 100%;
+    transition: width 0.2s;
+  }
+  
+  .faction-tab .tab-gold {
+    font-family: 'VT323', monospace;
+    font-size: clamp(10px, 2.2vmin, 14px);
+    color: #ffd866;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  
+  /* ===== Gift panel: background follows faction color ===== */
+  .gift-panel {
+    /* Fixed height to avoid panel height changes between hint/buttons states */
+    height: 76px;
+    background: linear-gradient(180deg, #15151f 0%, #1a1a26 100%);
+    border-top: 3px solid #2a2a3a;
+    padding: 10px 8px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background 0.3s, border-color 0.3s;
+    position: relative;
+    z-index: 1;
+    justify-content: center;
+    align-items: stretch;
+  }
+  
+  /* When a faction is selected: background tints to faction color via --accent-rgb */
+  .phone.has-selection .gift-panel {
+    background:
+      linear-gradient(180deg, rgba(var(--accent-rgb), 0.25) 0%, rgba(var(--accent-rgb), 0.4) 100%),
+      linear-gradient(180deg, #15151f 0%, #1a1a26 100%);
+    border-top-color: var(--accent);
+  }
+  
+  /* No selection -> show hint, hide buttons */
+  .gift-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(9px, 1.8vmin, 12px);
+    color: #aaa;
+    text-align: center;
+    letter-spacing: 1px;
+    animation: hintPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+  }
+  
+  .gift-row {
+    display: none;  /* hidden by default */
+    gap: 6px;
+  }
+  
+  /* When selected: show buttons, hide hint */
+  .phone.has-selection .gift-hint { display: none; }
+  .phone.has-selection .gift-row  { display: flex; }
+  
+  .gift-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 4px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.6vmin, 10px);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.08s, box-shadow 0.15s, background 0.15s;
+    text-align: center;
+    line-height: 1.5;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .gift-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.7);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  
+  /* Click effect: obvious press + flash */
+  .gift-btn:active {
+    transform: translateY(2px) scale(0.95);
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(0,0,0,0.5) 100%);
+    box-shadow: inset 0 4px 8px rgba(0,0,0,0.5);
+  }
+  
+  .gift-btn.tier1 { border-color: #8acc8a; }
+  .gift-btn.tier2 { border-color: #ffd866; }
+  .gift-btn.tier3 { border-color: #ff6688; box-shadow: 0 0 8px rgba(255, 102, 136, 0.3); }
+  
+  .gift-btn .tier { color: #ffd866; opacity: 0.9; }
+  
+  /* Pulse feedback when gift button is clicked (JS adds this class briefly) */
+  .gift-btn.firing {
+    animation: giftFire 0.4s ease-out;
+  }
+  
+  @keyframes giftFire {
+    0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.8); }
+    50%  { transform: scale(1.12); box-shadow: 0 0 0 12px rgba(255,255,255,0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+  
+  /* ===== Victory overlay ===== */
+  .victory-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 10, 0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    font-family: 'Press Start 2P', monospace;
+    padding: 5%;
+  }
+  
+  .victory-screen.show { display: flex; }
+  
+  .victory-title {
+    font-size: clamp(14px, 3vmin, 20px);
+    color: #ffd866;
+    margin-bottom: 12px;
+    text-align: center;
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .victory-winner {
+    font-size: clamp(20px, 4.5vmin, 32px);
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px currentColor;
+  }
+  
+  .victory-stats {
+    font-size: clamp(9px, 1.8vmin, 13px);
+    line-height: 1.8;
+    color: #aaa;
+    text-align: left;
+    background: #15151f;
+    padding: 12px;
+    border: 1px solid #3a3a4a;
+    border-radius: 4px;
+    min-width: 240px;
+  }
+  
+  .victory-stats .label { color: #8a8aff; }
+  .victory-stats .value { color: #ffd866; }
+  
+  .victory-screen .restart-big {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #6a4ac0;
+    border: 2px solid #8a8aff;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(10px, 2vmin, 14px);
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  /* Top-bar left group (restart + records button) */
+  .top-left { display: flex; gap: 6px; align-items: center; }
+
+  /* ===== Scoreboard (records) ===== */
+  .record-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 10, 0.4);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 120;
+    font-family: 'Press Start 2P', monospace;
+    padding: 6%;
+  }
+  .record-screen.show { display: flex; }
+
+  .record-title {
+    font-size: clamp(13px, 2.8vmin, 18px);
+    color: #ffd866;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .record-table {
+    width: 100%;
+    max-width: 280px;
+    background: #15151f;
+    border: 1px solid #3a3a4a;
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .record-total {
+    font-size: clamp(9px, 1.7vmin, 12px);
+    color: #8a8aff;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .record-row {
+    display: grid;
+    grid-template-columns: 16px 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    font-size: clamp(9px, 1.8vmin, 12px);
+    padding: 5px 0;
+    border-top: 1px solid #23232f;
+  }
+  .record-row:first-of-type { border-top: none; }
+  .record-row .rrank { color: #666; }
+  .record-row .rname { letter-spacing: 0.5px; }
+  .record-row .rwins { color: #ffd866; }
+  .record-row .rpct  {
+    font-family: 'VT323', monospace;
+    font-size: clamp(11px, 2.2vmin, 15px);
+    color: #aaa;
+    min-width: 44px;
+    text-align: right;
+  }
+
+  .record-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .record-actions .ctrl-btn { font-size: clamp(8px, 1.7vmin, 11px); padding: 8px 14px; }
+  .record-actions .danger { border-color: #ff5252; color: #ff8a8a; }
+
+  /* Compact standings block inside the victory screen */
+  .victory-record {
+    margin-top: 14px;
+    width: 100%;
+    max-width: 240px;
+  }
+  .victory-record .vr-head {
+    font-size: clamp(9px, 1.7vmin, 12px);
+    color: #ffd866;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- Top control bar: restart, records, timer, speed -->
+  <div class="top-bar">
+    <div class="top-left">
+      <button class="ctrl-btn" id="restartBtn">↻ Restart</button>
+      <button class="ctrl-btn" id="recordBtn" title="Records">🏆</button>
+    </div>
+    <div class="timer" id="timerBar">00:00</div>
+    <div class="speed-control">
+      <button class="speed-btn" data-speed="1">1x</button>
+      <button class="speed-btn active" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="4">4x</button>
+    </div>
+  </div>
+  
+  <!-- Game canvas (fills middle) -->
+  <div class="game-canvas-wrap">
+    <canvas id="game"></canvas>
+    
+    <!-- Victory overlay -->
+    <div class="victory-screen" id="victoryScreen">
+      <div class="victory-title">★ BATTLE OVER ★</div>
+      <div class="victory-winner" id="victoryWinner">ORC</div>
+      <div class="victory-stats" id="victoryStats"></div>
+      <div class="victory-record" id="victoryRecord"></div>
+      <button class="restart-big" id="restartBig">Play Again</button>
+    </div>
+
+    <!-- Scoreboard overlay -->
+    <div class="record-screen" id="recordScreen">
+      <div class="record-title">🏆 RECORDS</div>
+      <div class="record-table" id="recordTable"></div>
+      <div class="record-actions">
+        <button class="ctrl-btn danger" id="recordReset">Reset</button>
+        <button class="ctrl-btn" id="recordClose">Close</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bottom: faction tabs + gift panel (connected like browser tabs) -->
+  <div class="tab-bar" id="factionTabs"></div>
+  <div class="gift-panel" id="giftPanel">
+    <div class="gift-hint" id="supportHint">↑ Tap a faction to support</div>
+    <div class="gift-row" id="giftRow">
+      <button class="gift-btn tier1" data-tier="1">🎁 SMALL<br><span class="tier">T1 60%</span></button>
+      <button class="gift-btn tier2" data-tier="2">💝 MEDIUM<br><span class="tier">T2 30%</span></button>
+      <button class="gift-btn tier3" data-tier="3">💎 LARGE<br><span class="tier">T3 10%</span></button>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============= Config constants (tuned for 12-17 min battles) =============
+const CONFIG = {
+  // Faction
+  FACTION_HP: 8000,         // Base HP per faction
+  STARTING_GOLD: 50,        // Starting gold
+  
+  // Economy
+  GOLD_RATE: 2,             // J: gold per 2s
+  GOLD_INTERVAL: 200,
+  UNIT_PROD_INTERVAL: 5000,         // production tick: spawn one unit
+  // Spawn-tier probability weights (T1..T6): higher tiers are rarer.
+  // The pick is restricted to tiers the faction can currently afford, then weighted by these.
+  TIER_SPAWN_WEIGHTS: [50, 25, 12, 6, 3, 1],
+  
+  // Unit tiers (6 levels)
+  UNIT_TIERS: [
+    { tier: 1, cost: 10,   hp: 30,   atk: 4,   speed: 0.6, size: 5 },
+    { tier: 2, cost: 25,   hp: 65,   atk: 8,   speed: 0.55, size: 5 },
+    { tier: 3, cost: 60,   hp: 140,  atk: 16,  speed: 0.5, size: 6 },
+    { tier: 4, cost: 140,  hp: 300,  atk: 32,  speed: 0.45, size: 8 },
+    { tier: 5, cost: 320,  hp: 640,  atk: 64,  speed: 0.4, size: 10 },
+    { tier: 6, cost: 720,  hp: 1400, atk: 130, speed: 0.35, size: 12 },
+  ],
+  
+  // Combat
+  UNIT_ATTACK_RANGE: 18,
+  UNIT_ATTACK_INTERVAL: 700,  // attack cooldown ms
+  
+  // Chests
+  CHEST_MIN_INTERVAL: 5000,
+  CHEST_MAX_INTERVAL: 10000,
+  CHEST_TIER_WEIGHTS: [0.6, 0.3, 0.1],  // T1/T2/T3
+  
+  // Buff values
+  BUFF_PERCENT: [0.01, 0.03, 0.05],     // permanent +1/3/5%
+  TEMP_BUFF_PERCENT: [0.05, 0.10, 0.15], // temporary +5/10/15%
+  TEMP_BUFF_DURATION: 8000,              // temp buff duration ms
+  
+  // Gift -> chest tier mapping
+  GIFT_TIER_MAP: { 1: 1, 2: 2, 3: 3 },
+  
+  // Path
+  PATH_LENGTH: 1.0,  // normalized
+};
+
+// Faction definitions (each faction is a Warcraft race with fitting color + sprite set)
+const FACTIONS = [
+  // artFacing: natural horizontal direction the source art points (-1 left, +1 right)
+  { id: 0, name: 'ORC',    color: '#ff5252', colorRgb: '255,82,82',   accent: '#ff8a8a', cornerName: 'TopLeft',  spriteDir: 'orc',    spritePrefix: 'S', artFacing: -1 },
+  { id: 1, name: 'HUMAN',  color: '#4a8aff', colorRgb: '74,138,255',  accent: '#8ab0ff', cornerName: 'TopRight', spriteDir: 'human',  spritePrefix: 'R', artFacing: -1 },
+  { id: 2, name: 'ELF',    color: '#b06aff', colorRgb: '176,106,255', accent: '#c9a3ff', cornerName: 'BotLeft',  spriteDir: 'elf',    spritePrefix: 'J', artFacing: 1 },
+  { id: 3, name: 'UNDEAD', color: '#4adfb4', colorRgb: '74,223,180',  accent: '#88f0d0', cornerName: 'BotRight', spriteDir: 'undead', spritePrefix: 'W', artFacing: -1 },
+];
+
+// Preload unit sprites: UNIT_SPRITES[factionId][tier-1] -> Image (6 tiers per race)
+const UNIT_SPRITES = FACTIONS.map(f => {
+  const arr = [];
+  for (let t = 1; t <= 6; t++) {
+    const img = new Image();
+    img.src = `assets/${f.spriteDir}/${f.spritePrefix}${t}.png`;
+    arr.push(img);
+  }
+  return arr;
+});
+
+// Preload faction base sprites: BASE_SPRITES[factionId] -> Image
+const BASE_SPRITES = FACTIONS.map(f => {
+  const img = new Image();
+  img.src = `assets/base_${f.spriteDir}.png`;
+  return img;
+});
+
+// Procedural unit animation tuning (no sprite frames needed)
+const ANIM = {
+  BOB_FREQ: 9,        // walk bob frequency (rad/s)
+  BOB_AMP: 0.24,      // walk bob height, as a fraction of unit size
+  ATTACK_DUR: 180,    // attack lunge duration (ms)
+  LUNGE_DIST: 0.7,    // lunge reach, as a fraction of unit size
+  HIT_DUR: 160,       // hit-react duration (ms)
+  HIT_SQUASH: 0.3,    // hit squash amount
+  BASE_HIT_DUR: 220,  // base under-attack flash duration (ms)
+  BREATHE_FREQ: 2.5,  // idle breathing frequency (rad/s)
+  BREATHE_AMP: 0.035, // idle breathing scale amount
+};
+
+// Chest buff types
+const BUFF_TYPES = [
+  { id: 'gold_rate', name: 'GOLD+', isPerm: true, color: '#ffd866' },
+  { id: 'unit_rate', name: 'PROD+', isPerm: true, color: '#4adfb4' },
+  { id: 'cost_red',  name: 'COST-', isPerm: true, color: '#c0a0ff' },
+  { id: 'atk_perm',  name: 'ATK+', isPerm: true, color: '#ff5252' },
+  { id: 'spd_perm',  name: 'SPD+', isPerm: true, color: '#88f0d0' },
+  { id: 'hp_perm',   name: 'HP+', isPerm: true, color: '#ff8a8a' },
+  { id: 'atk_temp',  name: 'RAGE!', isPerm: false, color: '#ff3333' },
+  { id: 'spd_temp',  name: 'RUSH!', isPerm: false, color: '#33ffee' },
+];
+
+// ============= Game state =============
+let game = null;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// Virtual game coord system: W fixed, H derived from canvas aspect ratio.
+// This way the game fills the canvas with no letterbox.
+const W = 190;
+let H = 315;  // initial; will be overwritten by resizeCanvas
+
+let renderScale = 1;
+let renderOffsetX = 0, renderOffsetY = 0;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.floor(rect.width  * dpr);
+  canvas.height = Math.floor(rect.height * dpr);
+  
+  // Match virtual H to canvas aspect ratio so a single render scale fills it
+  const newH = W * (rect.height / rect.width);
+  const hChanged = Math.abs(newH - H) > 0.5;  // threshold: ignore <0.5 jitter
+  H = newH;
+  
+  renderScale = (rect.width / W) * dpr;
+  renderOffsetX = 0;
+  renderOffsetY = 0;
+  
+  ctx.imageSmoothingEnabled = false;
+  
+  // Geometry depends on H; recompute only on real change
+  if (game && hChanged) relayoutGeometry();
+}
+
+// Watch container resize
+const resizeObserver = new ResizeObserver(() => resizeCanvas());
+resizeObserver.observe(canvas);
+window.addEventListener('resize', resizeCanvas);
+
+// Recompute all faction bases and paths.
+// Units keep their pathProgress, so they land at the same relative position.
+function relayoutGeometry() {
+  for (let i = 0; i < game.factions.length; i++) {
+    game.factions[i].path = getPath(i);
+  }
+  // Reposition chests by their pathT
+  for (const c of game.chests) {
+    const p = posOnPath(game.factions[c.factionId].path, c.pathT);
+    c.x = p.x; c.y = p.y;
+  }
+}
+
+let speedMultiplier = 2;
+
+// ============= Utilities =============
+function rand(a, b) { return a + Math.random() * (b - a); }
+function randi(a, b) { return Math.floor(rand(a, b)); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function weightedPick(weights) {
+  const r = Math.random();
+  let acc = 0;
+  for (let i = 0; i < weights.length; i++) {
+    acc += weights[i];
+    if (r < acc) return i;
+  }
+  return weights.length - 1;
+}
+
+// ============= Factions & Paths =============
+function getBasePositions() {
+  // 4 corners (in virtual pixel space)
+  const m = 20;
+  return [
+    { x: m,       y: m },           // top-left  ORC
+    { x: W - m,   y: m },           // top-right HUMAN
+    { x: m,       y: H - m },       // bot-left  ELF
+    { x: W - m,   y: H - m },       // bot-right UNDEAD
+  ];
+}
+
+function getCenter() { return { x: W / 2, y: H / 2 }; }
+
+// Each faction has a 2-segment path to the central battlefield (equal length, supports chest pickup)
+function getPath(factionId) {
+  const bases = getBasePositions();
+  const base = bases[factionId];
+  const center = getCenter();
+  
+  // Midpoint: toward center from base
+  const inward = {
+    x: base.x + (center.x - base.x) * 0.4,
+    y: base.y + (center.y - base.y) * 0.4,
+  };
+  // Path waypoints
+  return [base, inward, center];
+}
+
+// Position on path at progress t (0-1)
+function posOnPath(path, t) {
+  // Compute total length
+  let total = 0;
+  const segLens = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const l = dist(path[i], path[i+1]);
+    segLens.push(l);
+    total += l;
+  }
+  let target = t * total;
+  for (let i = 0; i < segLens.length; i++) {
+    if (target <= segLens[i]) {
+      const frac = target / segLens[i];
+      return {
+        x: path[i].x + (path[i+1].x - path[i].x) * frac,
+        y: path[i].y + (path[i+1].y - path[i].y) * frac,
+      };
+    }
+    target -= segLens[i];
+  }
+  return { ...path[path.length - 1] };
+}
+
+function pathTotalLength(path) {
+  let total = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    total += dist(path[i], path[i+1]);
+  }
+  return total;
+}
+
+// ============= Game initialization =============
+function newGame() {
+  const factions = FACTIONS.map((f, i) => {
+    // Initial target: diagonal opponent
+    const targetMap = [3, 2, 1, 0];  // ORC->UNDEAD, HUMAN->ELF, ELF->HUMAN, UNDEAD->ORC
+    return {
+      ...f,
+      hp: CONFIG.FACTION_HP,
+      maxHp: CONFIG.FACTION_HP,
+      prevHp: CONFIG.FACTION_HP,  // for under-attack flash detection
+      hitAnim: 0,                 // ms remaining on base hit flash
+      gold: CONFIG.STARTING_GOLD,
+      alive: true,
+      goldTimer: 0,
+      unitTimer: CONFIG.UNIT_PROD_INTERVAL,  // primed so the first unit spawns immediately
+      chestTimer: rand(CONFIG.CHEST_MIN_INTERVAL, CONFIG.CHEST_MAX_INTERVAL),
+      path: getPath(i),
+      target: targetMap[i],
+      
+      // Buff modifiers (multipliers/adders)
+      mods: {
+        goldRate: 1,
+        unitRate: 1,
+        costMul: 1,
+        atkMul: 1,
+        spdMul: 1,
+        hpMul: 1,
+        atkTempEnd: 0,
+        atkTempMul: 1,
+        spdTempEnd: 0,
+        spdTempMul: 1,
+      },
+      
+      // Stats
+      stats: {
+        unitsProduced: 0,
+        unitsKilled: 0,
+        damageDealt: 0,
+        chestsCollected: 0,
+        giftsReceived: 0,
+      },
+    };
+  });
+  
+  return {
+    factions,
+    units: [],   // {factionId, x, y, hp, maxHp, atk, speed, tier, pathProgress, attackCooldown, target}
+    chests: [],  // {factionId, pos, tier, pathT}
+    projectiles: [],  // {x, y, vx, vy, life, color}
+    floatTexts: [],
+    elapsed: 0,
+    running: true,
+    winner: null,
+    
+    // Viewer system
+    supportFaction: null,  // current supported faction id
+    viewerGifts: [],       // {factionId, tier, value, time}
+  };
+}
+
+// ============= Unit production =============
+function getUnitStats(tier, faction) {
+  const base = CONFIG.UNIT_TIERS[tier - 1];
+  const m = faction.mods;
+  const now = performance.now();
+  const atkTemp = (now < m.atkTempEnd) ? m.atkTempMul : 1;
+  const spdTemp = (now < m.spdTempEnd) ? m.spdTempMul : 1;
+  return {
+    hp:    Math.round(base.hp  * m.hpMul),
+    atk:   Math.round(base.atk * m.atkMul * atkTemp),
+    speed: base.speed * m.spdMul * spdTemp,
+    size:  base.size,
+    tier,
+  };
+}
+
+function tryProduceUnit(faction) {
+  // Collect tiers the faction can currently afford, with their spawn weights
+  const affordable = [];   // tier indices (0-based)
+  const weights = [];
+  for (let i = 0; i < CONFIG.UNIT_TIERS.length; i++) {
+    const cost = Math.ceil(CONFIG.UNIT_TIERS[i].cost * faction.mods.costMul);
+    if (faction.gold >= cost) {
+      affordable.push(i);
+      weights.push(CONFIG.TIER_SPAWN_WEIGHTS[i]);
+    }
+  }
+  if (affordable.length === 0) return false;
+
+  // Weighted random pick among affordable tiers (higher tiers are rarer)
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  let chosen = affordable[affordable.length - 1];
+  for (let k = 0; k < affordable.length; k++) {
+    r -= weights[k];
+    if (r < 0) { chosen = affordable[k]; break; }
+  }
+
+  const tier = chosen + 1;
+  const cost = Math.ceil(CONFIG.UNIT_TIERS[chosen].cost * faction.mods.costMul);
+  faction.gold -= cost;
+
+  const stats = getUnitStats(tier, faction);
+  const base = faction.path[0];
+  
+  game.units.push({
+    factionId: faction.id,
+    x: base.x + rand(-3, 3),
+    y: base.y + rand(-3, 3),
+    hp: stats.hp,
+    maxHp: stats.hp,
+    atk: stats.atk,
+    speed: stats.speed,
+    size: stats.size,
+    tier: tier,
+    pathProgress: 0,
+    attackCooldown: 0,
+    targetEnemy: null,
+    color: faction.color,
+    facing: 1,  // +1 faces right, -1 faces left (sprite mirror)
+    // Always rally at center first, then charge the target. For the opening diagonal
+    // matchup the center lies on the straight path (no-op); after a kill it makes freshly
+    // produced units route through center to the new target instead of cutting across.
+    regroup: true,
+    // Animation state
+    animPhase: Math.random() * Math.PI * 2,  // desync bob/breathing between units
+    moving: false,
+    attackAnim: 0,   // ms remaining on attack lunge
+    hitAnim: 0,      // ms remaining on hit react
+    prevHp: stats.hp,
+    lungeDX: 0, lungeDY: 0,  // direction of the current lunge
+  });
+  
+  faction.stats.unitsProduced++;
+  return true;
+}
+
+// ============= Chests =============
+function spawnChest(faction) {
+  if (!faction.alive) return;
+  // Spawn in mid-path (0.3 - 0.7)
+  const pathT = rand(0.3, 0.7);
+  const pos = posOnPath(faction.path, pathT);
+  const tier = weightedPick(CONFIG.CHEST_TIER_WEIGHTS) + 1;
+  game.chests.push({
+    factionId: faction.id,
+    x: pos.x,
+    y: pos.y,
+    pathT,
+    tier,
+    pulse: 0,
+  });
+}
+
+function applyBuff(faction, buffType, tier) {
+  const permPct = CONFIG.BUFF_PERCENT[tier - 1];
+  const tempPct = CONFIG.TEMP_BUFF_PERCENT[tier - 1];
+  const m = faction.mods;
+  
+  switch (buffType.id) {
+    case 'gold_rate': m.goldRate *= (1 + permPct); break;
+    case 'unit_rate': m.unitRate *= (1 + permPct); break;
+    case 'cost_red':  m.costMul *= (1 - permPct); break;
+    case 'atk_perm':  m.atkMul *= (1 + permPct); break;
+    case 'spd_perm':  m.spdMul *= (1 + permPct); break;
+    case 'hp_perm':   m.hpMul *= (1 + permPct); break;
+    case 'atk_temp':
+      m.atkTempEnd = performance.now() + CONFIG.TEMP_BUFF_DURATION;
+      m.atkTempMul = 1 + tempPct;
+      break;
+    case 'spd_temp':
+      m.spdTempEnd = performance.now() + CONFIG.TEMP_BUFF_DURATION;
+      m.spdTempMul = 1 + tempPct;
+      break;
+  }
+  
+  // Top factions (ORC/HUMAN) drift down; bottom factions (ELF/UNDEAD) drift up
+  const base = faction.path[0];
+  const isTopFaction = base.y < H / 2;
+  const dir = isTopFaction ? 1 : -1;
+  const startY = isTopFaction ? base.y + 12 : base.y - 12;
+  spawnFloatText(base.x, startY, buffType.name + ' T' + tier, buffType.color, dir);
+}
+
+function collectChest(chest, unit) {
+  const faction = game.factions[chest.factionId];
+  const buff = pick(BUFF_TYPES);
+  applyBuff(faction, buff, chest.tier);
+  faction.stats.chestsCollected++;
+  game.chests = game.chests.filter(c => c !== chest);
+}
+
+// ============= Float text =============
+// dir: +1 floats down, -1 floats up (default down)
+function spawnFloatText(x, y, text, color, dir = 1) {
+  game.floatTexts.push({
+    x, y, text, color, dir,
+    life: 2500,
+    age: 0,
+  });
+}
+
+// ============= Main update loop =============
+function updateGame(dt) {
+  if (!game.running) return;
+  
+  game.elapsed += dt;
+  
+  // Expire temp buffs
+  const now = performance.now();
+  for (const f of game.factions) {
+    if (!f.alive) continue;
+    if (now >= f.mods.atkTempEnd) f.mods.atkTempMul = 1;
+    if (now >= f.mods.spdTempEnd) f.mods.spdTempMul = 1;
+  }
+  
+  // === Per faction ===
+  for (const f of game.factions) {
+    if (!f.alive) continue;
+
+    // Base under-attack flash: refresh timer whenever HP dropped since last frame
+    if (f.hitAnim > 0) f.hitAnim -= dt;
+    if (f.hp < f.prevHp) f.hitAnim = ANIM.BASE_HIT_DUR;
+    f.prevHp = f.hp;
+
+    // Gold income
+    f.goldTimer += dt;
+    if (f.goldTimer >= CONFIG.GOLD_INTERVAL) {
+      f.goldTimer -= CONFIG.GOLD_INTERVAL;
+      f.gold += CONFIG.GOLD_RATE * f.mods.goldRate;
+    }
+    
+    // Unit production: each tick spawns exactly ONE unit. Its tier is a weighted
+    // random pick among the tiers the faction can afford (higher tiers rarer),
+    // so gold/gifts raise the affordable ceiling while keeping elites uncommon.
+    f.unitTimer += dt;
+    const prodInterval = CONFIG.UNIT_PROD_INTERVAL / f.mods.unitRate;
+    if (f.unitTimer >= prodInterval) {
+      f.unitTimer -= prodInterval;
+      tryProduceUnit(f);
+    }
+    
+    // Spawn chest
+    f.chestTimer -= dt;
+    if (f.chestTimer <= 0) {
+      spawnChest(f);
+      f.chestTimer = rand(CONFIG.CHEST_MIN_INTERVAL, CONFIG.CHEST_MAX_INTERVAL);
+    }
+  }
+  
+  // === Retarget factions whose target was eliminated; regroup their units at center first ===
+  for (const f of game.factions) {
+    if (!f.alive) continue;
+    const t = f.target;
+    if (t !== null && game.factions[t] && game.factions[t].alive) continue;  // current target still valid
+    // Pick a new alive enemy
+    let nt = null;
+    for (const ff of game.factions) {
+      if (ff.alive && ff.id !== f.id) { nt = ff.id; break; }
+    }
+    f.target = nt;
+    if (nt !== null && nt !== t) {
+      // Target changed (old one fell): all living units of this faction regroup at center
+      // before charging the new target, instead of beelining straight to the next corner.
+      for (const u of game.units) {
+        if (u.factionId === f.id) u.regroup = true;
+      }
+    }
+  }
+
+  // === Units ===
+  for (const u of game.units) {
+    const faction = game.factions[u.factionId];
+    if (!faction.alive) continue;
+
+    // Target is maintained by the retarget pass above
+    const targetFactionId = faction.target;
+    if (targetFactionId === null) continue;
+
+    const targetBase = game.factions[targetFactionId].path[0];
+    
+    // Look for nearest enemy
+    let nearestEnemy = null;
+    let nearestDist = Infinity;
+    for (const other of game.units) {
+      if (other.factionId === u.factionId || other.hp <= 0) continue;
+      const d = dist(u, other);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestEnemy = other;
+      }
+    }
+    
+    // Move or fight
+    const dtSec = dt / 1000;
+    u.attackCooldown -= dt;
+
+    // Animation timers + hit detection
+    if (u.attackAnim > 0) u.attackAnim -= dt;
+    if (u.hitAnim > 0) u.hitAnim -= dt;
+    if (u.hp < u.prevHp) u.hitAnim = ANIM.HIT_DUR;  // took damage since last frame
+    u.prevHp = u.hp;
+    u.moving = false;  // set true below only while actually walking
+
+    if (nearestEnemy && nearestDist <= CONFIG.UNIT_ATTACK_RANGE) {
+      // Combat
+      if (u.attackCooldown <= 0) {
+        u.attackCooldown = CONFIG.UNIT_ATTACK_INTERVAL;
+        nearestEnemy.hp -= u.atk;
+        faction.stats.damageDealt += u.atk;
+        // Lunge toward the enemy
+        u.attackAnim = ANIM.ATTACK_DUR;
+        { const ax = nearestEnemy.x - u.x, ay = nearestEnemy.y - u.y, al = Math.hypot(ax, ay) || 1;
+          u.lungeDX = ax / al; u.lungeDY = ay / al; }
+
+        // Projectile effect
+        game.projectiles.push({
+          x: u.x, y: u.y,
+          tx: nearestEnemy.x, ty: nearestEnemy.y,
+          life: 200, age: 0,
+          color: u.color,
+        });
+        
+        if (nearestEnemy.hp <= 0) {
+          faction.stats.unitsKilled++;
+        }
+      }
+    } else {
+      // Destination: while regrouping (target just changed) head to center first, else enemy base
+      const dest = u.regroup ? getCenter() : targetBase;
+      const arriveR = u.regroup ? 6 : 8;
+      const dx = dest.x - u.x;
+      const dy = dest.y - u.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= arriveR) {
+        u.x += (dx / d) * u.speed * dtSec * 60;
+        u.y += (dy / d) * u.speed * dtSec * 60;
+        u.moving = true;
+        // Deadzone on dx so it won't flip facing when arriving / moving near-vertically
+        if (Math.abs(dx) > 1) u.facing = dx < 0 ? -1 : 1;
+      }
+
+      if (u.regroup) {
+        // Reached center -> stop regrouping and charge the new target on following frames
+        if (d < arriveR) u.regroup = false;
+      } else if (d < 8) {
+        // Reached enemy base -> attack it
+        if (u.attackCooldown <= 0) {
+          u.attackCooldown = CONFIG.UNIT_ATTACK_INTERVAL;
+          game.factions[targetFactionId].hp -= u.atk;
+          faction.stats.damageDealt += u.atk;
+          // Lunge toward the base being attacked
+          u.attackAnim = ANIM.ATTACK_DUR;
+          { const bx = targetBase.x - u.x, by = targetBase.y - u.y, bl = Math.hypot(bx, by) || 1;
+            u.lungeDX = bx / bl; u.lungeDY = by / bl; }
+
+          game.projectiles.push({
+            x: u.x, y: u.y,
+            tx: targetBase.x, ty: targetBase.y,
+            life: 200, age: 0,
+            color: u.color,
+          });
+          
+          if (game.factions[targetFactionId].hp <= 0) {
+            game.factions[targetFactionId].hp = 0;
+            game.factions[targetFactionId].alive = false;
+            spawnFloatText(targetBase.x, targetBase.y, 'DEFEATED!', '#ff3333');
+          }
+        }
+      }
+    }
+    
+    // Pick up chest
+    for (const c of game.chests) {
+      if (c.factionId !== u.factionId) continue;
+      if (dist(u, c) < u.size + 4) {
+        collectChest(c, u);
+      }
+    }
+  }
+  
+  // Remove dead units
+  game.units = game.units.filter(u => u.hp > 0);
+  
+  // === Projectiles ===
+  for (const p of game.projectiles) {
+    p.age += dt;
+  }
+  game.projectiles = game.projectiles.filter(p => p.age < p.life);
+  
+  // === Float texts ===
+  for (const t of game.floatTexts) t.age += dt;
+  game.floatTexts = game.floatTexts.filter(t => t.age < t.life);
+  
+  // === Chest pulse animation ===
+  for (const c of game.chests) c.pulse += dt * 0.005;
+  
+  // === Victory check ===
+  const alive = game.factions.filter(f => f.alive);
+  if (alive.length <= 1 && game.running) {
+    game.running = false;
+    game.winner = alive[0] || null;
+    showVictory();
+  }
+}
+
+// ============= Rendering =============
+// HP bar color: green -> yellow -> orange. Chosen to contrast with every faction
+// color (ORC red, HUMAN blue, ELF purple, UNDEAD teal) so bars stay readable on any unit.
+function hpColor(pct) {
+  return pct > 0.5 ? '#46e05a' : pct > 0.25 ? '#ffd23f' : '#ff7a1f';
+}
+
+function drawPath(faction) {
+  ctx.strokeStyle = faction.color + '44';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([2, 2]);
+  ctx.beginPath();
+  ctx.moveTo(faction.path[0].x, faction.path[0].y);
+  for (let i = 1; i < faction.path.length; i++) {
+    ctx.lineTo(faction.path[i].x, faction.path[i].y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// Geometry of a faction base sprite (so structure and overlay passes agree)
+function baseGeom(faction) {
+  const p = faction.path[0];
+  const img = BASE_SPRITES[faction.id];
+  if (img && img.complete && img.naturalWidth > 0) {
+    const drawH = 34;
+    const drawW = drawH * (img.naturalWidth / img.naturalHeight);
+    return { p, img, drawW, drawH, halfW: drawW / 2, topY: p.y - drawH / 2, botY: p.y + drawH / 2 };
+  }
+  return { p, img: null, drawW: 16, drawH: 16, halfW: 8, topY: p.y - 8, botY: p.y + 8 };
+}
+
+// Pass 1: the base structure (drawn UNDER units so units aren't covered at enemy bases)
+function drawBaseBody(faction) {
+  const g = baseGeom(faction);
+  const p = g.p;
+  // Opacity blink while under attack (HP recently dropped)
+  let alpha = faction.alive ? 1 : 0.3;
+  if (faction.alive && faction.hitAnim > 0) {
+    alpha = 0.3 + 0.7 * Math.abs(Math.sin(performance.now() * 0.02));
+  }
+  if (g.img) {
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(g.img, p.x - g.drawW / 2, g.topY, g.drawW, g.drawH);
+    ctx.globalAlpha = 1;
+  } else {
+    // Fallback: original colored block (sprite not loaded yet)
+    ctx.fillStyle = faction.alive ? faction.color : '#333';
+    ctx.fillRect(p.x - 8, p.y - 8, 16, 16);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(p.x - 5, p.y - 5, 10, 10);
+    ctx.fillStyle = faction.alive ? faction.accent : '#555';
+    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+  }
+}
+
+// Pass 2: HP bar + selection ring (drawn OVER units so they stay readable)
+function drawBaseOverlay(faction) {
+  const g = baseGeom(faction);
+  const p = g.p;
+  const pct = faction.hp / faction.maxHp;
+
+  if (faction.alive) {
+    const barW = Math.max(20, g.halfW * 1.3);
+    const barX = p.x - barW / 2;
+    const barY = g.topY - 4;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(barX, barY, barW, 3);
+    ctx.fillStyle = hpColor(pct);
+    ctx.fillRect(barX, barY, barW * pct, 3);
+  }
+
+  if (game.supportFaction === faction.id) {
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    const off = 3 + Math.sin(performance.now() * 0.005) * 1;
+    ctx.strokeRect(p.x - g.halfW - off, g.topY - off, g.halfW * 2 + off * 2, (g.botY - g.topY) + off * 2);
+  }
+}
+
+function drawUnit(u) {
+  const img = UNIT_SPRITES[u.factionId][u.tier - 1];
+  const footY = u.y + u.size / 2;  // sprite stands with feet at unit point
+  let topY;   // y of sprite top (for HP bar placement)
+  let halfW;  // half sprite width (for HP bar / ground marker width)
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    // Draw race sprite, scaled by unit size, anchored bottom-center
+    const drawH = u.size * 3;
+    const drawW = drawH * (img.naturalWidth / img.naturalHeight);
+    halfW = drawW / 2;
+    topY = footY - drawH;  // static top, used for HP bar (kept steady, not animated)
+
+    // Ground marker stays on the ground (un-animated) so feet appear to lift off it
+    ctx.fillStyle = u.color;
+    ctx.fillRect(u.x - halfW * 0.6, footY - 0.5, halfW * 1.2, 1);
+
+    // --- Procedural animation offsets ---
+    const t = performance.now() * 0.001;
+    // Walk bob: hop up while moving
+    const bobY = u.moving ? -Math.abs(Math.sin(t * ANIM.BOB_FREQ + u.animPhase)) * u.size * ANIM.BOB_AMP : 0;
+    // Attack lunge: out-and-back toward the target
+    let lx = 0, ly = 0;
+    if (u.attackAnim > 0) {
+      const amt = Math.sin((1 - u.attackAnim / ANIM.ATTACK_DUR) * Math.PI) * u.size * ANIM.LUNGE_DIST;
+      lx = u.lungeDX * amt; ly = u.lungeDY * amt;
+    }
+    // Scale: hit squash takes priority, else gentle idle breathing when standing
+    let sx = 1, sy = 1;
+    if (u.hitAnim > 0) {
+      const k = u.hitAnim / ANIM.HIT_DUR;
+      sx = 1 + ANIM.HIT_SQUASH * k;
+      sy = 1 - ANIM.HIT_SQUASH * 0.8 * k;
+    } else if (!u.moving && u.attackAnim <= 0) {
+      const br = Math.sin(t * ANIM.BREATHE_FREQ + u.animPhase) * ANIM.BREATHE_AMP;
+      sx = 1 - br; sy = 1 + br;
+    }
+
+    const flip = (u.facing !== FACTIONS[u.factionId].artFacing) ? -1 : 1;
+    ctx.save();
+    if (u.hitAnim > 0) ctx.filter = 'brightness(2.2)';  // flash on hit
+    // Origin at the (animated) feet; scale about feet keeps the unit planted
+    ctx.translate(u.x + lx, footY + ly + bobY);
+    ctx.scale(flip * sx, sy);
+    ctx.drawImage(img, -drawW / 2, -drawH, drawW, drawH);
+    ctx.restore();
+  } else {
+    // Fallback: original colored block (sprite not loaded yet)
+    halfW = u.size / 2;
+    topY = u.y - u.size / 2;
+    ctx.fillStyle = u.color;
+    ctx.fillRect(u.x - u.size / 2, u.y - u.size / 2, u.size, u.size);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(u.x - u.size / 4, u.y - u.size / 4, u.size / 2, u.size / 2);
+  }
+
+  // HP bar (only when damaged), above the sprite/block
+  if (u.hp < u.maxHp) {
+    const pct = u.hp / u.maxHp;
+    const barW = Math.max(u.size, halfW * 1.2);
+    const barX = u.x - barW / 2;
+    const barY = topY - 3;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(barX, barY, barW, 1);
+    ctx.fillStyle = hpColor(pct);
+    ctx.fillRect(barX, barY, barW * pct, 1);
+  }
+}
+
+function drawChest(c) {
+  const tierColors = ['#a0c0a0', '#ffd866', '#ff66cc'];
+  const color = tierColors[c.tier - 1];
+  const s = 5 + Math.sin(c.pulse) * 0.5;
+  
+  // glow
+  ctx.fillStyle = color + '44';
+  ctx.fillRect(c.x - s - 2, c.y - s - 2, (s + 2) * 2, (s + 2) * 2);
+  // body
+  ctx.fillStyle = color;
+  ctx.fillRect(c.x - s, c.y - s, s * 2, s * 2);
+  // inner
+  ctx.fillStyle = '#000';
+  ctx.fillRect(c.x - 1, c.y - 1, 2, 2);
+  // tier dots
+  for (let i = 0; i < c.tier; i++) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(c.x - 2 + i * 2, c.y - s - 2, 1, 1);
+  }
+}
+
+function drawProjectile(p) {
+  const alpha = 1 - p.age / p.life;
+  const t = p.age / p.life;
+  const x = p.x + (p.tx - p.x) * t;
+  const y = p.y + (p.ty - p.y) * t;
+  ctx.fillStyle = p.color;
+  ctx.globalAlpha = alpha;
+  ctx.fillRect(x - 1, y - 1, 2, 2);
+  ctx.globalAlpha = 1;
+}
+
+function render() {
+  // Clear full canvas (raw pixels)
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply transform: map virtual coord system (W x H) into real canvas
+  ctx.setTransform(renderScale, 0, 0, renderScale, renderOffsetX, renderOffsetY);
+  
+  // background
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(0, 0, W, H);
+  
+  // pixel grid
+  ctx.fillStyle = '#22222c';
+  for (let i = 0; i < W; i += 8) {
+    for (let j = 0; j < H; j += 8) {
+      if ((i + j) % 16 === 0) ctx.fillRect(i, j, 1, 1);
+    }
+  }
+  
+  // central battlefield indicator
+  const c = getCenter();
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([1, 2]);
+  ctx.strokeRect(c.x - 20, c.y - 20, 40, 40);
+  ctx.setLineDash([]);
+  
+  // Path
+  for (const f of game.factions) {
+    if (f.alive) drawPath(f);
+  }
+  
+  // Chests
+  for (const c of game.chests) drawChest(c);
+
+  // base structures (under units, so units reaching an enemy base aren't covered)
+  for (const f of game.factions) drawBaseBody(f);
+
+  // units (draw back-to-front by y so lower sprites overlap higher ones)
+  const drawOrder = game.units.slice().sort((a, b) => a.y - b.y);
+  for (const u of drawOrder) drawUnit(u);
+
+  // base overlays: HP bar + selection ring (over units, so they stay readable)
+  for (const f of game.factions) drawBaseOverlay(f);
+
+  // projectiles
+  for (const p of game.projectiles) drawProjectile(p);
+  
+  // Float text on canvas - direction by dir, slower fade
+  ctx.font = '6px monospace';
+  ctx.textAlign = 'center';
+  for (const t of game.floatTexts) {
+    const p = t.age / t.life;
+    const alpha = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
+    const offset = (1 - Math.pow(1 - p, 2)) * 18;
+    ctx.fillStyle = t.color;
+    ctx.globalAlpha = alpha;
+    ctx.fillText(t.text, t.x, t.y + offset * (t.dir || 1));
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+// ============= UI updates =============
+// Tab system: one tab per faction, shows name/HP/gold and acts as the selector.
+// DOM is built once; each frame only updates HP fill width, gold text, and className.
+
+let factionTabEls = [];  // {tab, hpFill, gold}
+
+function buildFactionTabs() {
+  const bar = document.getElementById('factionTabs');
+  bar.innerHTML = '';
+  factionTabEls = [];
+  for (const f of game.factions) {
+    const tab = document.createElement('div');
+    tab.className = 'faction-tab';
+    tab.style.borderColor = f.color;
+    tab.style.color = f.color;
+    tab.innerHTML = `
+      <div class="tab-name">${f.name}</div>
+      <div class="tab-hp"><div class="tab-hp-fill" style="background:${f.color}"></div></div>
+      <div class="tab-gold">0g</div>
+    `;
+    const hpFill = tab.querySelector('.tab-hp-fill');
+    const gold   = tab.querySelector('.tab-gold');
+    
+    tab.addEventListener('click', () => {
+      if (!game.factions[f.id].alive) return;
+      game.supportFaction = f.id;
+      // Set CSS vars: accent color (hex) + RGB triplet (for translucent backgrounds)
+      const phone = document.querySelector('.phone');
+      phone.style.setProperty('--accent', f.color);
+      phone.style.setProperty('--accent-rgb', f.colorRgb);
+      phone.classList.add('has-selection');  // triggers: show buttons, hide hint
+      refreshFactionTabs();
+    });
+    
+    bar.appendChild(tab);
+    factionTabEls.push({ tab, hpFill, gold });
+  }
+  refreshFactionTabs();
+}
+
+function refreshFactionTabs() {
+  // If currently supported faction dies, clear selection; UI returns to no-selection state
+  if (game.supportFaction !== null && !game.factions[game.supportFaction].alive) {
+    game.supportFaction = null;
+    document.querySelector('.phone').classList.remove('has-selection');
+  }
+  
+  for (let i = 0; i < factionTabEls.length; i++) {
+    const { tab, hpFill, gold } = factionTabEls[i];
+    const f = game.factions[i];
+    let cls = 'faction-tab';
+    if (game.supportFaction === f.id) cls += ' selected';
+    if (!f.alive) cls += ' dead';
+    if (tab.className !== cls) tab.className = cls;
+    
+    // Update values
+    const pct = Math.max(0, f.hp / f.maxHp) * 100;
+    hpFill.style.width = pct + '%';
+    const newGold = Math.floor(f.gold) + 'g';
+    if (gold.textContent !== newGold) gold.textContent = newGold;
+  }
+}
+
+function timeStr(ms) {
+  const sec = Math.floor(ms / 1000);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateTimer() {
+  document.getElementById('timerBar').textContent = timeStr(game.elapsed);
+}
+
+// ============= Gift system =============
+function sendGift(tier) {
+  if (game.supportFaction === null) return;
+  const faction = game.factions[game.supportFaction];
+  if (!faction.alive) {
+    // Faction died; clear selection and revert UI
+    game.supportFaction = null;
+    document.querySelector('.phone').classList.remove('has-selection');
+    refreshFactionTabs();
+    return;
+  }
+  
+  // Spawn a chest of matching tier on the path
+  const pathT = rand(0.3, 0.7);
+  const pos = posOnPath(faction.path, pathT);
+  game.chests.push({
+    factionId: faction.id,
+    x: pos.x,
+    y: pos.y,
+    pathT,
+    tier,
+    pulse: 0,
+  });
+  
+  game.viewerGifts.push({
+    factionId: faction.id,
+    tier,
+    value: tier,
+    time: game.elapsed,
+    viewer: 'You',
+  });
+  faction.stats.giftsReceived++;
+  
+  spawnFloatText(pos.x, pos.y - 8, '🎁 T' + tier, faction.color);
+}
+
+// ============= Victory screen =============
+// ============= Scoreboard (persisted in localStorage) =============
+const RECORD_KEY = 'battleSimRecord_v1';
+
+function loadRecord() {
+  try {
+    const r = JSON.parse(localStorage.getItem(RECORD_KEY));
+    if (r && typeof r === 'object') return { games: r.games || 0, wins: r.wins || {} };
+  } catch (e) {}
+  return { games: 0, wins: {} };
+}
+function saveRecord(r) {
+  try { localStorage.setItem(RECORD_KEY, JSON.stringify(r)); } catch (e) {}
+}
+// Record a finished game. winnerName === null => a draw (counts as a game, no win).
+function recordGameResult(winnerName) {
+  const r = loadRecord();
+  r.games += 1;
+  if (winnerName) r.wins[winnerName] = (r.wins[winnerName] || 0) + 1;
+  saveRecord(r);
+}
+function recordRowsHtml() {
+  const r = loadRecord();
+  const rows = FACTIONS.map(f => ({ name: f.name, color: f.color, wins: r.wins[f.name] || 0 }));
+  rows.sort((a, b) => b.wins - a.wins);
+  let html = `<div class="record-total">Games Played: ${r.games}</div>`;
+  rows.forEach((row, i) => {
+    const pct = r.games ? Math.round(row.wins / r.games * 100) : 0;
+    html += `<div class="record-row">`
+      + `<span class="rrank">${i + 1}</span>`
+      + `<span class="rname" style="color:${row.color}">${row.name}</span>`
+      + `<span class="rwins">${row.wins}W</span>`
+      + `<span class="rpct">${pct}%</span>`
+      + `</div>`;
+  });
+  return html;
+}
+function renderRecordTable() {
+  document.getElementById('recordTable').innerHTML = recordRowsHtml();
+}
+function showRecords() {
+  renderRecordTable();
+  document.getElementById('recordScreen').classList.add('show');
+}
+function hideRecords() {
+  document.getElementById('recordScreen').classList.remove('show');
+}
+
+function showVictory() {
+  const screen = document.getElementById('victoryScreen');
+  screen.classList.add('show');
+  const winner = game.winner;
+  const winnerEl = document.getElementById('victoryWinner');
+  if (winner) {
+    winnerEl.textContent = winner.name + ' WINS';
+    winnerEl.style.color = winner.color;
+  } else {
+    winnerEl.textContent = 'DRAW';
+    winnerEl.style.color = '#888';
+  }
+  
+  // Stats
+  let stats = '';
+  stats += `<div><span class="label">Time:</span> <span class="value">${timeStr(game.elapsed)}</span></div>`;
+  if (winner) {
+    stats += `<div><span class="label">Units:</span> <span class="value">${winner.stats.unitsProduced}</span></div>`;
+    stats += `<div><span class="label">Kills:</span> <span class="value">${winner.stats.unitsKilled}</span></div>`;
+    stats += `<div><span class="label">Damage:</span> <span class="value">${winner.stats.damageDealt}</span></div>`;
+    stats += `<div><span class="label">Chests:</span> <span class="value">${winner.stats.chestsCollected}</span></div>`;
+    stats += `<div><span class="label">Gifts:</span> <span class="value">${winner.stats.giftsReceived}</span></div>`;
+  }
+  
+  // Viewer ranking (by value)
+  const giftsByViewer = {};
+  for (const g of game.viewerGifts) {
+    if (winner && g.factionId !== winner.id) continue;
+    giftsByViewer[g.viewer] = (giftsByViewer[g.viewer] || 0) + g.value;
+  }
+  const ranking = Object.entries(giftsByViewer).sort((a,b) => b[1] - a[1]);
+  if (ranking.length) {
+    stats += `<div style="margin-top:8px;color:#8a8aff">▼ Top Supporters</div>`;
+    ranking.forEach(([name, val], i) => {
+      stats += `<div>#${i+1} ${name} <span class="value">${val}pt</span></div>`;
+    });
+  }
+  
+  document.getElementById('victoryStats').innerHTML = stats;
+
+  // Persist this game's result and show the all-time standings
+  recordGameResult(winner ? winner.name : null);
+  document.getElementById('victoryRecord').innerHTML =
+    `<div class="vr-head">▼ All-Time Records</div>` + recordRowsHtml();
+
+  // Auto-restart countdown
+  startAutoRestart(5);
+}
+
+function hideVictory() {
+  document.getElementById('victoryScreen').classList.remove('show');
+}
+
+// ===== Auto-restart countdown (after a game ends) =====
+let autoRestartInterval = null;
+
+function startAutoRestart(seconds) {
+  const btn = document.getElementById('restartBig');
+  let remain = seconds;
+  const setLabel = () => { btn.textContent = `Play Again (${remain})`; };
+  clearAutoRestart();
+  setLabel();
+  autoRestartInterval = setInterval(() => {
+    remain -= 1;
+    if (remain <= 0) {
+      clearAutoRestart();
+      restart();
+    } else {
+      setLabel();
+    }
+  }, 1000);
+}
+
+function clearAutoRestart() {
+  if (autoRestartInterval !== null) {
+    clearInterval(autoRestartInterval);
+    autoRestartInterval = null;
+  }
+  const btn = document.getElementById('restartBig');
+  if (btn) btn.textContent = 'Play Again';
+}
+
+// ============= Main loop =============
+let lastTime = 0;
+function loop(now) {
+  if (!lastTime) lastTime = now;
+  const realDt = now - lastTime;
+  lastTime = now;
+  
+  if (game && game.running) {
+    // Apply speed multiplier
+    const simDt = realDt * speedMultiplier;
+    // Sub-steps for stability
+    const steps = Math.ceil(simDt / 33);
+    const stepDt = simDt / steps;
+    for (let i = 0; i < steps; i++) updateGame(stepDt);
+    
+    updateTimer();
+    refreshFactionTabs();  // also refreshes HP/gold/selected state
+  }
+  
+  if (game) render();
+  
+  requestAnimationFrame(loop);
+}
+
+// ============= Events =============
+document.querySelectorAll('.gift-btn').forEach(btn => {
+  btn.onclick = () => {
+    const tier = parseInt(btn.dataset.tier);
+    // Only play animation when a gift is actually sent
+    if (game.supportFaction !== null && game.factions[game.supportFaction].alive) {
+      btn.classList.remove('firing');
+      // Force reflow so the animation can re-trigger
+      void btn.offsetWidth;
+      btn.classList.add('firing');
+    }
+    sendGift(tier);
+  };
+});
+
+document.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    speedMultiplier = parseInt(btn.dataset.speed);
+  };
+});
+
+document.getElementById('restartBtn').onclick = restart;
+document.getElementById('restartBig').onclick = restart;
+
+// Scoreboard buttons
+document.getElementById('recordBtn').onclick = showRecords;
+document.getElementById('recordClose').onclick = hideRecords;
+document.getElementById('recordReset').onclick = () => {
+  saveRecord({ games: 0, wins: {} });
+  renderRecordTable();
+};
+
+function restart() {
+  clearAutoRestart();  // cancel any pending countdown + reset the button label
+  game = newGame();
+  hideVictory();
+  document.querySelector('.phone').classList.remove('has-selection');
+  buildFactionTabs();
+}
+
+// Start
+game = newGame();
+buildFactionTabs();
+resizeCanvas();
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
